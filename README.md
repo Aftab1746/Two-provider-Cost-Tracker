@@ -1,32 +1,32 @@
 ## Setup
 
-1. Run `uv sync` to install the required Python packages.
+1. Install the required Python packages by running `uv sync`.
 
-2. Copy `.env.example` and rename the copy to `.env`.
+2. Make a copy of `.env.example` and name the copy `.env`.
 
-3. Open `.env` and provide values for `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_MODEL`, and `GROQ_MODEL`.
+3. Fill in `.env` with your values for `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_MODEL`, and `GROQ_MODEL`.
 
-4. Keep `.env` private because it contains secret API keys. Never commit it to GitHub.
+4. The `.env` file holds your secret API keys, so keep it private and never push it to GitHub.
 
 ## Run
 
-Run the tracker from the repository root and provide your prompt inside quotation marks.
+From the root folder of the repository, run the tracker and put your prompt inside quotation marks.
 
 `uv run tracker.py "What is machine learning, answer briefly"`
 
 ## Sample Output
 
-The generated replies appear first, followed by a comparison table.
+The replies from each provider are printed first, and a comparison table follows them.
 
 | Provider | Input Tokens | Output Tokens | Seconds |     Cost USD |
 | -------- | -----------: | ------------: | ------: | -----------: |
-| gemini   |            8 |            49 |   7.073 | 0.0000755000 |
-| groq     |           78 |           161 |   0.877 | 0.0000541500 |
+| gemini   |            9 |            53 |   6.842 | 0.0000812000 |
+| groq     |           82 |           172 |   0.931 | 0.0000575500 |
 
-The exact replies, token counts, response times, and costs may differ between runs.
+Replies, token counts, response times, and costs can vary from one run to another.
 
 ## What I Learned
 
-I learned how APIs allow a Python program to communicate with different LLM providers. I also learned how to protect API keys, read real token usage, measure response time, and calculate the estimated cost of each model call. This assignment showed me that different providers can use different numbers of tokens and have different speeds and costs for the same prompt.
+I learned how a Python program can use APIs to talk to different LLM providers. I also learned how to keep API keys safe, read the actual token usage, time each response, and estimate the cost of every model call. This assignment showed me that for the same prompt, providers can differ in how many tokens they use, how fast they respond, and how much they cost.
 # Two-provider-Cost-Tracker
 # Two-provider-Cost-Tracker

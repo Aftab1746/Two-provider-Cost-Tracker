@@ -8,173 +8,173 @@ from google import genai
 from groq import Groq
 
 
-# Gemini 3.1 Flash Lite paid prices per one million tokens.
-# Source, https://aistudio.google.com/docs/pricing#gemini-3.1-flash-lite
-GEMINI_INPUT_PRICE_PER_M = 0.25
-GEMINI_OUTPUT_PRICE_PER_M = 1.50
+# Paid pricing for Gemini 3.1 Flash Lite (USD for every 1M tokens).
+# See: https://aistudio.google.com/docs/pricing#gemini-3.1-flash-lite
+GEMINI_RATE_IN = 0.25
+GEMINI_RATE_OUT = 1.50
 
-# Groq GPT OSS 20B paid prices per one million tokens.
-# Source, https://console.groq.com/docs/model/openai/gpt-oss-20b
-GROQ_INPUT_PRICE_PER_M = 0.075
-GROQ_OUTPUT_PRICE_PER_M = 0.30
+# Paid pricing for Groq GPT OSS 20B (USD for every 1M tokens).
+# See: https://console.groq.com/docs/model/openai/gpt-oss-20b
+GROQ_RATE_IN = 0.075
+GROQ_RATE_OUT = 0.30
 
 
-def calculate_cost(
-    input_tokens,
-    output_tokens,
-    input_price_per_m,
-    output_price_per_m,
+def estimate_price(
+    tokens_in,
+    tokens_out,
+    rate_in,
+    rate_out,
 ):
-    input_cost = input_tokens * input_price_per_m / 1_000_000
-    output_cost = output_tokens * output_price_per_m / 1_000_000
+    price_in = tokens_in * rate_in / 1_000_000
+    price_out = tokens_out * rate_out / 1_000_000
 
-    return input_cost + output_cost
+    return price_in + price_out
 
 
-def call_gemini(prompt, api_key, model):
-    client = genai.Client(api_key=api_key)
+def ask_gemini(question, secret, model_id):
+    gemini_client = genai.Client(api_key=secret)
 
-    start_time = time.perf_counter()
+    begin = time.perf_counter()
 
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt,
+    result = gemini_client.models.generate_content(
+        model=model_id,
+        contents=question,
     )
 
-    elapsed_time = time.perf_counter() - start_time
+    lapse = time.perf_counter() - begin
 
-    reply = response.text
-    input_tokens = response.usage_metadata.prompt_token_count
-    output_tokens = response.usage_metadata.candidates_token_count
+    answer = result.text
+    tokens_in = result.usage_metadata.prompt_token_count
+    tokens_out = result.usage_metadata.candidates_token_count
 
-    return reply, input_tokens, output_tokens, elapsed_time
+    return answer, tokens_in, tokens_out, lapse
 
 
-def call_groq(prompt, api_key, model):
-    client = Groq(api_key=api_key)
+def ask_groq(question, secret, model_id):
+    groq_client = Groq(api_key=secret)
 
-    messages = [
+    chat = [
         {
             "role": "user",
-            "content": prompt,
+            "content": question,
         }
     ]
 
-    start_time = time.perf_counter()
+    begin = time.perf_counter()
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
+    result = groq_client.chat.completions.create(
+        model=model_id,
+        messages=chat,
     )
 
-    elapsed_time = time.perf_counter() - start_time
+    lapse = time.perf_counter() - begin
 
-    reply = response.choices[0].message.content
-    input_tokens = response.usage.prompt_tokens
-    output_tokens = response.usage.completion_tokens
+    answer = result.choices[0].message.content
+    tokens_in = result.usage.prompt_tokens
+    tokens_out = result.usage.completion_tokens
 
-    return reply, input_tokens, output_tokens, elapsed_time
+    return answer, tokens_in, tokens_out, lapse
 
 
 load_dotenv()
 
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-groq_api_key = os.getenv("GROQ_API_KEY")
-gemini_model = os.getenv("GEMINI_MODEL")
-groq_model = os.getenv("GROQ_MODEL")
+gemini_secret = os.getenv("GEMINI_API_KEY")
+groq_secret = os.getenv("GROQ_API_KEY")
+gemini_model_id = os.getenv("GEMINI_MODEL")
+groq_model_id = os.getenv("GROQ_MODEL")
 
 
-if not gemini_api_key:
-    print("Gemini API key is missing.")
+if not gemini_secret:
+    print("The Gemini API key was not found.")
     sys.exit(1)
 
-if not groq_api_key:
-    print("Groq API key is missing.")
+if not groq_secret:
+    print("The Groq API key was not found.")
     sys.exit(1)
 
-if not gemini_model:
-    print("Gemini model name is missing.")
+if not gemini_model_id:
+    print("The Gemini model name was not found.")
     sys.exit(1)
 
-if not groq_model:
-    print("Groq model name is missing.")
+if not groq_model_id:
+    print("The Groq model name was not found.")
     sys.exit(1)
 
 
 if len(sys.argv) < 2:
-    print('Usage, uv run tracker.py "your prompt"')
+    print('Usage: uv run tracker.py "your prompt"')
     sys.exit(1)
 
-prompt = " ".join(sys.argv[1:]).strip()
+question = " ".join(sys.argv[1:]).strip()
 
-if not prompt:
-    print("The prompt cannot be empty.")
+if not question:
+    print("The prompt must not be empty.")
     sys.exit(1)
 
 
-gemini_reply, gemini_input_tokens, gemini_output_tokens, gemini_seconds = (
-    call_gemini(
-        prompt,
-        gemini_api_key,
-        gemini_model,
+gemini_answer, gemini_in, gemini_out, gemini_lapse = (
+    ask_gemini(
+        question,
+        gemini_secret,
+        gemini_model_id,
     )
 )
 
-groq_reply, groq_input_tokens, groq_output_tokens, groq_seconds = call_groq(
-    prompt,
-    groq_api_key,
-    groq_model,
+groq_answer, groq_in, groq_out, groq_lapse = ask_groq(
+    question,
+    groq_secret,
+    groq_model_id,
 )
 
 
-gemini_cost = calculate_cost(
-    gemini_input_tokens,
-    gemini_output_tokens,
-    GEMINI_INPUT_PRICE_PER_M,
-    GEMINI_OUTPUT_PRICE_PER_M,
+gemini_price = estimate_price(
+    gemini_in,
+    gemini_out,
+    GEMINI_RATE_IN,
+    GEMINI_RATE_OUT,
 )
 
-groq_cost = calculate_cost(
-    groq_input_tokens,
-    groq_output_tokens,
-    GROQ_INPUT_PRICE_PER_M,
-    GROQ_OUTPUT_PRICE_PER_M,
+groq_price = estimate_price(
+    groq_in,
+    groq_out,
+    GROQ_RATE_IN,
+    GROQ_RATE_OUT,
 )
 
 
-results = [
+comparison = [
     {
         "provider": "gemini",
-        "model": gemini_model,
-        "reply": gemini_reply,
-        "input_tokens": gemini_input_tokens,
-        "output_tokens": gemini_output_tokens,
-        "input_price_per_m": GEMINI_INPUT_PRICE_PER_M,
-        "output_price_per_m": GEMINI_OUTPUT_PRICE_PER_M,
-        "cost_usd": gemini_cost,
+        "model": gemini_model_id,
+        "reply": gemini_answer,
+        "input_tokens": gemini_in,
+        "output_tokens": gemini_out,
+        "input_price_per_m": GEMINI_RATE_IN,
+        "output_price_per_m": GEMINI_RATE_OUT,
+        "cost_usd": gemini_price,
     },
     {
         "provider": "groq",
-        "model": groq_model,
-        "reply": groq_reply,
-        "input_tokens": groq_input_tokens,
-        "output_tokens": groq_output_tokens,
-        "input_price_per_m": GROQ_INPUT_PRICE_PER_M,
-        "output_price_per_m": GROQ_OUTPUT_PRICE_PER_M,
-        "cost_usd": groq_cost,
+        "model": groq_model_id,
+        "reply": groq_answer,
+        "input_tokens": groq_in,
+        "output_tokens": groq_out,
+        "input_price_per_m": GROQ_RATE_IN,
+        "output_price_per_m": GROQ_RATE_OUT,
+        "cost_usd": groq_price,
     },
 ]
 
 
-with open("results.json", "w", encoding="utf-8") as file:
-    json.dump(results, file, indent=2, ensure_ascii=False)
+with open("results.json", "w", encoding="utf-8") as results_file:
+    json.dump(comparison, results_file, indent=2, ensure_ascii=False)
 
 
 print("\nGEMINI REPLY\n")
-print(gemini_reply)
+print(gemini_answer)
 
 print("\nGROQ REPLY\n")
-print(groq_reply)
+print(groq_answer)
 
 
 print()
@@ -190,18 +190,18 @@ print("-" * 69)
 
 print(
     f"{'gemini':<10}"
-    f"{gemini_input_tokens:>15}"
-    f"{gemini_output_tokens:>16}"
-    f"{gemini_seconds:>12.3f}"
-    f"{gemini_cost:>16.10f}"
+    f"{gemini_in:>15}"
+    f"{gemini_out:>16}"
+    f"{gemini_lapse:>12.3f}"
+    f"{gemini_price:>16.10f}"
 )
 
 print(
     f"{'groq':<10}"
-    f"{groq_input_tokens:>15}"
-    f"{groq_output_tokens:>16}"
-    f"{groq_seconds:>12.3f}"
-    f"{groq_cost:>16.10f}"
+    f"{groq_in:>15}"
+    f"{groq_out:>16}"
+    f"{groq_lapse:>12.3f}"
+    f"{groq_price:>16.10f}"
 )
 
 print("Saved results to results.json")
